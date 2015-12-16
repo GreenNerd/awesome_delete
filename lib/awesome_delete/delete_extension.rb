@@ -1,12 +1,13 @@
 module AwesomeDelete
   module DeleteExtension
     def delete_collection ids, all_associations_name = []
-      #检查是否有destroy callback -> where(id: ids).destroy_all 或 delete_all
+      #check if there is like *_destroy callback (where(id: ids).destroy_all OR delete_all)
 
-      #找 has_many(排除through) 并且 dependent destroy, foreign_key, class_name, polymorphic
+      #find has_many dependent: :destroy associations (remove has_many through)
 
-      #counter_cahce, touch
+      #support polymorphic, counter_cahce, touch
 
+      #all_associations_name is added to support counter_cahce and touch
       if all_associations_name.blank?
         all_associations_name = get_associations_name << self.name
       end
@@ -50,6 +51,7 @@ module AwesomeDelete
                                   association.options.deep_symbolize_keys.has_key?(:touch) || association.options.deep_symbolize_keys.has_key?(:counter_cahce)
                                 end
       associated_class_names = belongs_to_assoications.map(&:class_name)
+      #avoid to unnecessary handle
       (all_associations_name & associated_class_names) == associated_class_names
     end
 
@@ -63,7 +65,7 @@ module AwesomeDelete
 
     def delete_assoicated_collection ids, associations, all_associations_name
       associations.each do |association|
-        association_class = association.class_name.constantize
+        association_class = association.klass
 
         #polymorphic
         if association.type
