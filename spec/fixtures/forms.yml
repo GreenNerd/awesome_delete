@@ -1,3 +1,9 @@
 form_a:
   id: 1
   title: form_a
+  project_id: 1
+
+form_b:
+  id: 2
+  title: form_b
+  project_id: 1

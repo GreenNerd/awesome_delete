@@ -8,7 +8,7 @@ module AwesomeDelete
       #counter_cahce, touch
 
       if all_associations_name.blank?
-        all_association_name = get_associations_name << self.name
+        all_associations_name = get_associations_name << self.name
       end
 
       # STI
@@ -35,7 +35,14 @@ module AwesomeDelete
     end
 
     def not_handle_destroy_callback?
-      has_many_assoications.count == _destroy_callbacks.count
+      #association.rb(from has_many dependent: :*)
+      destroy_callback_location = /lib\/active_record\/associations\/builder\/association.rb/
+
+      destroy_callbacks = _destroy_callbacks.to_a.select do |callback|
+                            callback.raw_filter.is_a?(String) || callback.raw_filter.is_a?(Symbol) ||
+                            callback.raw_filter.to_s.match(destroy_callback_location)
+                          end
+      has_many_assoications.count == destroy_callbacks.count
     end
 
     def not_handle_counter_cache_or_touch? all_associations_name

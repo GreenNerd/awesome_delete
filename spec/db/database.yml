@@ -3,8 +3,8 @@ postgresql:
   database: awesome_delete_test
   encoding: unicode
   pool: 10
-  username:
-  password:
+  username: skylark
+  password: skylark
   host: localhost
   port: 5432
   min_messages: warning

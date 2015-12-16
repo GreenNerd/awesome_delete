@@ -1,10 +1,19 @@
+class Project < ActiveRecord::Base
+end
+
 class Form < ActiveRecord::Base
   has_many :fields, dependent: :destroy
   has_many :responses, as: :responseable, dependent: :destroy
 end
 
 class Field < ActiveRecord::Base
-  belongs_to :form
+  belongs_to :form, touch: true
+
+  def destroy
+    super
+    #for test
+    ActiveRecord::Base.logger.info('Delete entry by destroy.')
+  end
 end
 
 class Field::A < Field
@@ -19,6 +28,11 @@ class Field::C < Field
 end
 
 class Option < ActiveRecord::Base
+  def destroy
+    super
+    #for test
+    ActiveRecord::Base.logger.info('Delete option by destroy.')
+  end
 end
 
 class Response < ActiveRecord::Base
@@ -27,11 +41,17 @@ class Response < ActiveRecord::Base
 end
 
 class Entry < ActiveRecord::Base
-  after_destroy :test
+  after_destroy :handle
+
+  def destroy
+    super
+    #for test
+    ActiveRecord::Base.logger.debug('Delete entry by destroy.')
+  end
 
   private
 
-  def test
-    p 'test'
+  def handle
+    ActiveRecord::Base.logger.info('Doing other things.')
   end
 end

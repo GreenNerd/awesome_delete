@@ -1,0 +1,14 @@
+option_a:
+  id: 1
+  title: option_a
+  field_id: 1
+
+option_b:
+  id: 2
+  title: option_b
+  field_id: 2
+
+option_c:
+  id: 3
+  title: option_c
+  field_id: 2

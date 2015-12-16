@@ -1,6 +1,14 @@
 ActiveRecord::Schema.define(:version => 0) do
+  create_table :projects, :force => true do |t|
+    t.string :title
+    t.integer :forms_count
+    t.datetime :created_at
+    t.datetime :updated_at
+  end
+
   create_table :forms, :force => true do |t|
     t.string :title
+    t.integer :project_id
     t.datetime :created_at
     t.datetime :updated_at
   end
@@ -16,6 +24,7 @@ ActiveRecord::Schema.define(:version => 0) do
     t.string :title
     t.integer :form_id
     t.string :type
+    t.integer :options_count, default: 0
     t.datetime :created_at
     t.datetime :updated_at
   end

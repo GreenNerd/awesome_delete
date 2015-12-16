@@ -2,11 +2,13 @@ field_a:
   id: 1
   form_id: 1
   type: 'Field::A'
+  options_count: 1
 
 field_b:
   id: 2
   form_id: 1
   type: 'Field::B'
+  options_count: 2
 
 field_c:
   id: 3
