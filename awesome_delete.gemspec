@@ -1,8 +1,10 @@
+require File.expand_path('../lib/awesome_delete/version', __FILE__)
+
 Gem::Specification.new do |gem|
   gem.authors       = ['hw93']
   gem.email         = ['676018683@qq.com']
   gem.license       = 'MIT'
-  gem.version       = '0.1'
+  gem.version       = AwesomeDelete::VERSION
 
   gem.executables   = `git ls-files -- bin/*`.split("\n").map{ |f| File.basename(f) }
   gem.files         = `git ls-files`.split("\n")
