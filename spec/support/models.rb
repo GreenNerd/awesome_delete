@@ -10,9 +10,9 @@ class Field < ActiveRecord::Base
   belongs_to :form, touch: true
 
   def destroy
-    super
     #for test
-    ActiveRecord::Base.logger.info('Delete entry by destroy.')
+    ActiveRecord::Base.logger.info('Delete field by destroy.')
+    super
   end
 end
 
@@ -29,9 +29,9 @@ end
 
 class Option < ActiveRecord::Base
   def destroy
-    super
     #for test
     ActiveRecord::Base.logger.info('Delete option by destroy.')
+    super
   end
 end
 
@@ -44,9 +44,9 @@ class Entry < ActiveRecord::Base
   after_destroy :handle
 
   def destroy
-    super
     #for test
     ActiveRecord::Base.logger.debug('Delete entry by destroy.')
+    super
   end
 
   private
