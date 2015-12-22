@@ -27,6 +27,11 @@ class Field::C < Field
 end
 
 class Option < ActiveRecord::Base
+  after_commit :test
+
+  def test
+    Logger.send "option_after_commit", 'Doing other things.'
+  end
 end
 
 class Response < ActiveRecord::Base
@@ -35,12 +40,17 @@ class Response < ActiveRecord::Base
 end
 
 class Entry < ActiveRecord::Base
-  after_destroy :handle
+  before_destroy :handle1
+  after_destroy :handle2
   belongs_to :response, counter_cache: true
 
   private
 
-  def handle
+  def handle1
+    Logger.send "entry_before_destroy", 'Doing other things.'
+  end
+
+  def handle2
     Logger.send "entry_after_destroy", 'Doing other things.'
   end
 end

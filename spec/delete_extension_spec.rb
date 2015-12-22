@@ -77,7 +77,13 @@ describe 'AwesomeDelete' do
     end
 
     it 'executes destroy callback' do
+      expect(Logger).to receive(:entry_before_destroy).with("Doing other things.").exactly(3).times
       expect(Logger).to receive(:entry_after_destroy).with("Doing other things.").exactly(3).times
+      Form.delete_collection [form_a.id, form_b.id]
+    end
+
+    it 'executes commit callback' do
+      expect(Logger).to receive(:option_after_commit).with("Doing other things.").exactly(3).times
       Form.delete_collection [form_a.id, form_b.id]
     end
   end

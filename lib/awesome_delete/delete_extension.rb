@@ -124,6 +124,10 @@ module AwesomeDelete
       collection = where(id: ids).to_a
       befores = _destroy_callbacks.select { |callback| callback.kind == :before }
       afters = _destroy_callbacks.select { |callback| callback.kind == :after }
+      commits = _commit_callbacks.select do |callback|
+        ifs = callback.instance_variable_get('@if')
+        ifs.empty? || ifs.include?("transaction_include_any_action?([:destroy])")
+      end
 
       befores.each do |callback|
         case callback.filter
@@ -133,6 +137,12 @@ module AwesomeDelete
       end
       where(id: ids).delete_all
       afters.each do |callback|
+        case callback.filter
+        when Symbol
+          collection.each { |item| item.send callback.filter }
+        end
+      end
+      commits.each do |callback|
         case callback.filter
         when Symbol
           collection.each { |item| item.send callback.filter }
