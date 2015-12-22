@@ -8,7 +8,8 @@ ActiveRecord::Schema.define(:version => 0) do
 
   create_table :forms, :force => true do |t|
     t.string :title
-    t.integer :project_id
+    t.integer :formable_id
+    t.string :formable_type
     t.datetime :created_at
     t.datetime :updated_at
   end

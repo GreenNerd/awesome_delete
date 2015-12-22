@@ -15,13 +15,13 @@ describe 'AwesomeDelete' do
       }.to change { Form.count }.by -2
     end
 
-    # it 'touchs the project' do
-    #   form_a = forms(:form_a)
-    #   form_b = forms(:form_b)
-    #   expect {
-    #     Form.delete_collection [form_a.id, form_b.id]
-    #   }.to change { projects(:project_a).updated_at }
-    # end
+    it 'touchs the project' do
+      form_a = forms(:form_a)
+      form_b = forms(:form_b)
+      expect {
+        Form.delete_collection [form_a.id, form_b.id]
+      }.to change { projects(:project_a).reload.updated_at }
+    end
 
     it 'decrements the fields count' do
       form_a = forms(:form_a)
@@ -59,27 +59,6 @@ describe 'AwesomeDelete' do
       form_a = forms(:form_a)
       form_b = forms(:form_b)
       expect(ActiveRecord::Base.logger).to receive(:info).with("Doing other things.").exactly(3).times
-      Form.delete_collection [form_a.id, form_b.id]
-    end
-
-    it 'deletes options by delete_all' do
-      form_a = forms(:form_a)
-      form_b = forms(:form_b)
-      expect(ActiveRecord::Base.logger).not_to receive(:info).with("Delete option by destroy.")
-      Form.delete_collection [form_a.id, form_b.id]
-    end
-
-    it 'deletes entries by destroy_all' do
-      form_a = forms(:form_a)
-      form_b = forms(:form_b)
-      expect(ActiveRecord::Base.logger).to receive(:debug).with("Delete entry by destroy.").exactly(3).times
-      Form.delete_collection [form_a.id, form_b.id]
-    end
-
-    it 'deletes fields by delete_all' do
-      form_a = forms(:form_a)
-      form_b = forms(:form_b)
-      expect(ActiveRecord::Base.logger).not_to receive(:info).with("Delete field by destroy.")
       Form.delete_collection [form_a.id, form_b.id]
     end
   end

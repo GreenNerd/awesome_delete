@@ -1,9 +1,11 @@
 form_a:
   id: 1
   title: form_a
-  project_id: 1
+  formable_id: 1
+  formable_type: Project
 
 form_b:
   id: 2
   title: form_b
-  project_id: 1
+  formable_id: 1
+  formable_type: Project
