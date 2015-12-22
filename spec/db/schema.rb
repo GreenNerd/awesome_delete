@@ -6,8 +6,16 @@ ActiveRecord::Schema.define(:version => 0) do
     t.datetime :updated_at
   end
 
+  create_table :users, :force => true do |t|
+    t.string :name
+    t.integer :forms_count
+    t.datetime :created_at
+    t.datetime :updated_at
+  end
+
   create_table :forms, :force => true do |t|
     t.string :title
+    t.integer :user_id
     t.integer :formable_id
     t.string :formable_type
     t.datetime :created_at
@@ -17,6 +25,7 @@ ActiveRecord::Schema.define(:version => 0) do
   create_table :responses, :force => true do |t|
     t.integer :responseable_id
     t.string :responseable_type
+    t.integer :entries_count
     t.datetime :created_at
     t.datetime :updated_at
   end

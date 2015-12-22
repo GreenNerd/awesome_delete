@@ -3,62 +3,81 @@ require 'spec_helper'
 describe 'AwesomeDelete' do
 
   before(:all) do
-    self.class.fixtures :projects, :forms, :fields, :options, :responses, :entries
+    self.class.fixtures :projects, :forms, :fields, :options, :responses, :entries, :users
   end
 
   describe 'deleting forms' do
+    let!(:form_a) { forms(:form_a) }
+    let!(:form_b) { forms(:form_b) }
+
     it 'decrements the forms count' do
-      form_a = forms(:form_a)
-      form_b = forms(:form_b)
       expect {
         Form.delete_collection [form_a.id, form_b.id]
       }.to change { Form.count }.by -2
     end
 
     it 'touchs the project' do
-      form_a = forms(:form_a)
-      form_b = forms(:form_b)
+      expect(Logger).to receive(:project_touch).with("Touching")
       expect {
         Form.delete_collection [form_a.id, form_b.id]
       }.to change { projects(:project_a).reload.updated_at }
     end
 
+    it 'updates forms_count of project' do
+      expect(Logger).to receive(:project_update_counter).with("Updating counter")
+      expect {
+        Form.delete_collection [form_a.id, form_b.id]
+      }.to change { projects(:project_a).reload.forms_count }.by -2
+    end
+
+    it 'touchs the user' do
+      expect {
+        Form.delete_collection [form_a.id, form_b.id]
+      }.to change { users(:user_a).reload.updated_at }
+    end
+
+    it 'updates forms_count of user' do
+      expect {
+        Form.delete_collection [form_a.id, form_b.id]
+      }.to change { users(:user_a).reload.forms_count }.by -2
+    end
+
     it 'decrements the fields count' do
-      form_a = forms(:form_a)
-      form_b = forms(:form_b)
       expect {
         Form.delete_collection [form_a.id, form_b.id]
       }.to change { Field.count }.by -3
     end
 
     it 'decrements the options count' do
-      form_a = forms(:form_a)
-      form_b = forms(:form_b)
       expect {
         Form.delete_collection [form_a.id, form_b.id]
       }.to change { Option.count }.by -3
     end
 
     it 'decrements the responses count' do
-      form_a = forms(:form_a)
-      form_b = forms(:form_b)
       expect {
         Form.delete_collection [form_a.id, form_b.id]
       }.to change { Response.count }.by -3
     end
 
     it 'decrements the entries count' do
-      form_a = forms(:form_a)
-      form_b = forms(:form_b)
       expect {
         Form.delete_collection [form_a.id, form_b.id]
       }.to change { Entry.count }.by -3
     end
 
+    it 'doesnot touch forms' do
+      expect(Logger).not_to receive(:form_touch).with("Touching")
+      Form.delete_collection [form_a.id, form_b.id]
+    end
+
+    it 'doesnot updates entries of responses' do
+      expect(Logger).not_to receive(:response_update_counter).with("Updating counter")
+      Form.delete_collection [form_a.id, form_b.id]
+    end
+
     it 'executes destroy callback' do
-      form_a = forms(:form_a)
-      form_b = forms(:form_b)
-      expect(ActiveRecord::Base.logger).to receive(:info).with("Doing other things.").exactly(3).times
+      expect(Logger).to receive(:entry_after_destroy).with("Doing other things.").exactly(3).times
       Form.delete_collection [form_a.id, form_b.id]
     end
   end

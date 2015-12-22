@@ -3,7 +3,7 @@ module AwesomeDelete
     def delete_collection ids, all_associations_name = []
       return true if ids.blank?
 
-      #Not handle counter_cache or touch in all_associations_name
+      #Not handle counter_cache or touch association in all_associations_name
       @@all_associations_name = all_associations_name
 
       if @@all_associations_name.blank?
@@ -38,7 +38,7 @@ module AwesomeDelete
 
     def counter_cache_associations
       @counter_cache_associations ||= reflect_on_all_associations.select do |asso|
-                                        asso.options.deep_symbolize_keys[:counter_cahce]
+                                        asso.options.deep_symbolize_keys[:counter_cache]
                                       end
     end
 
@@ -64,27 +64,35 @@ module AwesomeDelete
       need_handle_counter_cache_associations = counter_cache_associations.select do |asso|
                                                  !@@all_associations_name.include?(asso.class_name)
                                                end
+      cache_ids_with_possible_types = []
       need_handle_counter_cache_associations.each do |asso|
         if asso.options[:polymorphic]
-          types_ids = where(id: field_ids).pluck(asso.foreign_key, asso.foreign_type).uniq
-          types = types_ids.map(&:first).uniq
-          types.each do |type|
-            ids = types_ids.select { |type_id| type_id.first == type }.map(&:last).uniq.compact
-            ids.each do |id|
-              associated_object = type.constantize.find_by id: id
-              associated_object && associated_object.update(asso.counter_cache_column => where(asso.foreign_key => id).count)
-            end
-          end
+          cache_ids_with_possible_types << where(id: ids).pluck(asso.foreign_type, asso.foreign_key).uniq
         else
-          asso_ids = where(id: ids).pluck(asso.foreign_key).uniq.compact
-          asso_ids.each do |id|
-            associated_object = asso.klass.find_by id: id
-            associated_object && associated_object.update(asso.counter_cache_column => where(asso.foreign_key => id).count)
-          end
+          cache_ids_with_possible_types << where(id: ids).pluck(asso.foreign_key).uniq
         end
       end
 
       execute_callbacks(ids)
+
+      #counter_cache
+      need_handle_counter_cache_associations.each_with_index do |asso, index|
+        if asso.options[:polymorphic]
+          types_ids = cache_ids_with_possible_types[index]
+          types = types_ids.map(&:first).uniq
+          types.each do |type|
+            ids = types_ids.select { |type_id| type_id.first == type }.map(&:last).uniq.compact
+            ids.each do |id|
+              type.constantize.where(id: id).update_all asso.counter_cache_column => where(asso.foreign_key => id).count
+            end
+          end
+        else
+          asso_ids = cache_ids_with_possible_types[index]
+          asso_ids.each do |id|
+            asso.klass.where(id: id).update_all asso.counter_cache_column => where(asso.foreign_key => id).count
+          end
+        end
+      end
     end
 
     def delete_assoicated_collection ids, associations
