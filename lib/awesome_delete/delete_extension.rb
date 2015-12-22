@@ -84,24 +84,7 @@ module AwesomeDelete
         end
       end
 
-      #execute callbacks
-      collection = where(id: ids).to_a
-      befores = _destroy_callbacks.select { |callback| callback.kind == :before }
-      afters = _destroy_callbacks.select { |callback| callback.kind == :after }
-
-      befores.each do |callback|
-        case callback.filter
-        when Symbol
-          collection.each { |item| item.send callback.filter }
-        end
-      end
-      where(id: ids).delete_all
-      afters.each do |callback|
-        case callback.filter
-        when Symbol
-          collection.each { |item| item.send callback.filter }
-        end
-      end
+      execute_callbacks(ids)
     end
 
     def delete_assoicated_collection ids, associations
@@ -126,6 +109,27 @@ module AwesomeDelete
         associations_name += association.class_name.constantize.get_associations_name
       end
       associations_name
+    end
+
+    def execute_callbacks ids
+      #overwriting this method may be a better choice
+      collection = where(id: ids).to_a
+      befores = _destroy_callbacks.select { |callback| callback.kind == :before }
+      afters = _destroy_callbacks.select { |callback| callback.kind == :after }
+
+      befores.each do |callback|
+        case callback.filter
+        when Symbol
+          collection.each { |item| item.send callback.filter }
+        end
+      end
+      where(id: ids).delete_all
+      afters.each do |callback|
+        case callback.filter
+        when Symbol
+          collection.each { |item| item.send callback.filter }
+        end
+      end
     end
   end
 end
