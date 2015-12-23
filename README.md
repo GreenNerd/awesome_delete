@@ -1,7 +1,7 @@
 # awesome_delete
 > Recursive delete appropriately
 
-Delete a collection with less sqls. 
+Delete a collection with less sqls.
 It thinks about the following
 - STI (delete the associations of subclass)
 - polymorphism
@@ -26,11 +26,12 @@ eg:
 ```ruby
 class CloudFile < ActiveRecord::Base
   after_destroy :remove_file
-  
+
   def self.execute_callbacks ids
     keys = where(id: ids).pluck(:key)
+    # do something with all keys
   end
-  
+
   def remove_file key
     HttpClient.send_request key
   end
