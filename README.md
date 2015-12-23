@@ -31,11 +31,22 @@ Overwriting it maybe a better choice.
 eg:
 ```ruby
 class CloudFile < ActiveRecord::Base
+  before_destroy :test
   after_destroy :remove_file
 
   def self.execute_callbacks ids
+    # before_destroy
+    put 'someting'
+
+    where(id: ids).delete_all # delete self
+
+    # after_destroy
     keys = where(id: ids).pluck(:key)
     # do something with all keys
+  end
+
+  def test
+    put 'someting'
   end
 
   def remove_file key
