@@ -1,7 +1,7 @@
 # awesome_delete
 > Recursive delete appropriately
 
-Delete a collection with less sqls.
+Recursively delete a collection and its all assoication with less sqls.
 It thinks about the following
 - STI (delete the associations of subclass)
 - polymorphism

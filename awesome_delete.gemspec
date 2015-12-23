@@ -5,12 +5,15 @@ Gem::Specification.new do |gem|
   gem.email         = ['676018683@qq.com']
   gem.license       = 'MIT'
   gem.version       = AwesomeDelete::VERSION
+  gem.summary       = 'Recursively delete appropriately'
+  gem.description   = 'Recursively delete a collection and its all assoication with less sqls'
 
   gem.executables   = `git ls-files -- bin/*`.split("\n").map{ |f| File.basename(f) }
   gem.files         = `git ls-files`.split("\n")
   gem.test_files    = `git ls-files -- {test,spec,features}/*`.split("\n")
   gem.name          = 'awesome_delete'
   gem.require_paths = ['lib']
+  gem.homepage      = 'https://github.com/hw676018683/awesome_delete'
 
   gem.required_ruby_version = ">= 1.9.3"
 
