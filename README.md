@@ -8,6 +8,12 @@ It thinks about the following
 - counter_cache, touch (avoid to unnecessary handle)
 - callbacks
 
+## Install
+
+```ruby
+gem install awesome_delete
+```
+
 ## Example
 
 ```ruby
