@@ -22,8 +22,13 @@ class Form < ActiveRecord::Base
 end
 
 class Field < ActiveRecord::Base
+  has_many :options, dependent: :destroy
 end
 
+class Option < ActiveRecord::Base
+end
+
+# it deletes forms, fields and options
 Form.delete_collection [1,4,5]
 ```
 The class method `execute_callbacks` will execute callbacks.
