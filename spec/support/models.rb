@@ -58,7 +58,7 @@ end
 class ActiveRecord::Relation
   def update_all updates
     #for test
-    if updates[:updated_at]
+    if updates[:updated_at] || updates['updated_at']
       Logger.send "#{model.name.downcase}_touch", 'Touching'
     elsif updates.keys.find { |key| key =~ /.*_count$/ }
       Logger.send "#{model.name.downcase}_update_counter", 'Updating counter'
