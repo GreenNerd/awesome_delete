@@ -3,24 +3,23 @@ module AwesomeDelete
     def delete_collection ids, all_associations_name = []
       return true if ids.blank?
 
+      #Need not to set value for all_associations_name
       #Not handle counter_cache or touch association in all_associations_name
-      @@all_associations_name = all_associations_name
-
-      if @@all_associations_name.blank?
-        @@all_associations_name = get_associations_name << self.name
+      if all_associations_name.blank?
+        all_associations_name = get_associations_name << self.name
       end
 
-      delete_assoicated_collection(ids, deleted_associations)
+      delete_assoicated_collection(ids, deleted_associations, all_associations_name)
 
       # STI
       if column_names.include? inheritance_column
         where(id: ids).pluck(inheritance_column).uniq.each do |type|
           subklass = type.constantize
-          subklass.delete_self_collection(ids)
-          delete_assoicated_collection(ids, subklass.deleted_associations - deleted_associations)
+          subklass.delete_self_collection(ids, all_associations_name)
+          delete_assoicated_collection(ids, subklass.deleted_associations - deleted_associations, all_associations_name)
         end
       else
-        delete_self_collection(ids)
+        delete_self_collection(ids, all_associations_name)
       end
     end
 
@@ -42,10 +41,10 @@ module AwesomeDelete
                                       end
     end
 
-    def delete_self_collection ids
+    def delete_self_collection ids, all_associations_name
       #touch
       need_handle_touch_associations = touch_associations.select do |asso|
-                                         !@@all_associations_name.include?(asso.class_name)
+                                         !all_associations_name.include?(asso.class_name)
                                        end
       need_handle_touch_associations.each do |asso|
         if asso.options[:polymorphic]
@@ -62,7 +61,7 @@ module AwesomeDelete
 
       #counter_cache
       need_handle_counter_cache_associations = counter_cache_associations.select do |asso|
-                                                 !@@all_associations_name.include?(asso.class_name)
+                                                 !all_associations_name.include?(asso.class_name)
                                                end
       cache_ids_with_possible_types = []
       need_handle_counter_cache_associations.each do |asso|
@@ -95,15 +94,15 @@ module AwesomeDelete
       end
     end
 
-    def delete_assoicated_collection ids, associations
+    def delete_assoicated_collection ids, associations, all_associations_name
       associations.each do |association|
         association_class = association.klass
 
         #polymorphic
         if association.type
-          association_class.delete_collection association_class.where(association.foreign_key => ids, association.type => self.name).pluck(:id), @@all_associations_name
+          association_class.delete_collection association_class.where(association.foreign_key => ids, association.type => self.name).pluck(:id), all_associations_name
         else
-          association_class.delete_collection association_class.where(association.foreign_key => ids).pluck(:id), @@all_associations_name
+          association_class.delete_collection association_class.where(association.foreign_key => ids).pluck(:id), all_associations_name
         end
       end
     end
