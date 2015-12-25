@@ -46,63 +46,18 @@ module AwesomeDelete
       need_handle_touch_associations = touch_associations.select do |asso|
                                          !all_associations_name.include?(asso.class_name)
                                        end
-      cache_ids_with_types_of_touch = []
-      need_handle_touch_associations.each do |asso|
-        if asso.options[:polymorphic]
-          cache_ids_with_types_of_touch << where(id: ids).pluck(asso.foreign_type, asso.foreign_key).uniq
-        else
-          cache_ids_with_types_of_touch << where(id: ids).pluck(asso.foreign_key).uniq
-        end
-      end
+      cache_ids_with_types_of_touch = get_ids_with_types(need_handle_touch_associations)
 
       #counter_cache
       need_handle_counter_cache_associations = counter_cache_associations.select do |asso|
                                                  !all_associations_name.include?(asso.class_name)
                                                end
-      cache_ids_with_types_of_counter_cache = []
-      need_handle_counter_cache_associations.each do |asso|
-        if asso.options[:polymorphic]
-          cache_ids_with_types_of_counter_cache << where(id: ids).pluck(asso.foreign_type, asso.foreign_key).uniq
-        else
-          cache_ids_with_types_of_counter_cache << where(id: ids).pluck(asso.foreign_key).uniq
-        end
-      end
+      cache_ids_with_types_of_counter_cache = get_ids_with_types(need_handle_counter_cache_associations)
 
       execute_callbacks(ids)
 
-      #touch
-      need_handle_touch_associations.each_with_index do |asso, index|
-        if asso.options[:polymorphic]
-          types_ids = cache_ids_with_types_of_touch[index]
-          types = types_ids.map(&:first).uniq
-          types.each do |type|
-            type_ids = types_ids.select { |type_id| type_id.first == type }.map(&:last).uniq.compact
-            type.constantize.where(id: type_ids).map(&:touch)
-          end
-        else
-          asso_ids = cache_ids_with_types_of_touch[index]
-          asso.klass.where(id: asso_ids).map(&:touch)
-        end
-      end
-
-      #counter_cache
-      need_handle_counter_cache_associations.each_with_index do |asso, index|
-        if asso.options[:polymorphic]
-          types_ids = cache_ids_with_types_of_counter_cache[index]
-          types = types_ids.map(&:first).uniq
-          types.each do |type|
-            type_ids = types_ids.select { |type_id| type_id.first == type }.map(&:last).uniq.compact
-            type_ids.each do |id|
-              type.constantize.where(id: id).update_all asso.counter_cache_column => where(asso.foreign_key => id).count
-            end
-          end
-        else
-          asso_ids = cache_ids_with_types_of_counter_cache[index]
-          asso_ids.each do |id|
-            asso.klass.where(id: id).update_all asso.counter_cache_column => where(asso.foreign_key => id).count
-          end
-        end
-      end
+      handle_touch(need_handle_touch_associations, cache_ids_with_types_of_touch)
+      handle_counter_cache(need_handle_counter_cache_associations, cache_ids_with_types_of_counter_cache)
     end
 
     def delete_assoicated_collection ids, associations, all_associations_name
@@ -127,6 +82,16 @@ module AwesomeDelete
         associations_name += association.class_name.constantize.get_associations_name
       end
       associations_name
+    end
+
+    def get_ids_with_types associations
+      associations.map do |asso|
+        if asso.options[:polymorphic]
+          where(id: ids).pluck(asso.foreign_type, asso.foreign_key).uniq
+        else
+          where(id: ids).pluck(asso.foreign_key).uniq
+        end
+      end
     end
 
     def execute_callbacks ids
@@ -156,6 +121,42 @@ module AwesomeDelete
         case callback.filter
         when Symbol
           collection.each { |item| item.send callback.filter }
+        end
+      end
+    end
+
+    def handle_touch associations, ids_with_types
+      associations.each_with_index do |asso, index|
+        if asso.options[:polymorphic]
+          types_ids = ids_with_types[index]
+          types = types_ids.map(&:first).uniq
+          types.each do |type|
+            type_ids = types_ids.select { |type_id| type_id.first == type }.map(&:last).uniq.compact
+            type.constantize.where(id: type_ids).map(&:touch)
+          end
+        else
+          asso_ids = ids_with_types[index]
+          asso.klass.where(id: asso_ids).map(&:touch)
+        end
+      end
+    end
+
+    def handle_counter_cache associations, ids_with_types
+      associations.each_with_index do |asso, index|
+        if asso.options[:polymorphic]
+          types_ids = ids_with_types[index]
+          types = types_ids.map(&:first).uniq
+          types.each do |type|
+            type_ids = types_ids.select { |type_id| type_id.first == type }.map(&:last).uniq.compact
+            type_ids.each do |id|
+              type.constantize.where(id: id).update_all asso.counter_cache_column => where(asso.foreign_key => id).count
+            end
+          end
+        else
+          asso_ids = ids_with_types[index]
+          asso_ids.each do |id|
+            asso.klass.where(id: id).update_all asso.counter_cache_column => where(asso.foreign_key => id).count
+          end
         end
       end
     end
