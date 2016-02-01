@@ -17,7 +17,7 @@ describe 'AwesomeDelete' do
     end
 
     it 'touchs the project' do
-      expect(Logger).to receive(:project_touch).with("Touching")
+      expect(Logger).to receive(:project_touch).with("Touching").at_least(:once)
       expect {
         Form.delete_collection [form_a.id, form_b.id]
       }.to change { projects(:project_a).reload.updated_at }
@@ -108,6 +108,18 @@ describe 'AwesomeDelete' do
       expect {
         Option.delete_collection [option_a.id, option_b.id]
       }.to change { field_a.reload.options.count }.by -1
+    end
+  end
+
+  describe 'destroying entries' do
+    it 'touchs the response' do
+      entry_a = entries(:entry_a)
+      entry_b = entries(:entry_b)
+      response_a = responses(:response_a)
+
+      expect {
+        Entry.delete_collection [entry_a.id, entry_b.id]
+      }.to change { response_a.reload.updated_at }
     end
   end
 end

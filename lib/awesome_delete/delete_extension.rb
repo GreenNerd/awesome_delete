@@ -129,7 +129,7 @@ module AwesomeDelete
       associations.each_with_index do |asso, index|
         if asso.options[:polymorphic]
           types_ids = ids_with_types[index]
-          types = types_ids.map(&:first).uniq
+          types = types_ids.map(&:first).uniq.compact
           types.each do |type|
             type_ids = types_ids.select { |type_id| type_id.first == type }.map(&:last).uniq.compact
             type.constantize.where(id: type_ids).map(&:touch)
@@ -145,17 +145,17 @@ module AwesomeDelete
       associations.each_with_index do |asso, index|
         if asso.options[:polymorphic]
           types_ids = ids_with_types[index]
-          types = types_ids.map(&:first).uniq
+          types = types_ids.map(&:first).uniq.compact
           types.each do |type|
             type_ids = types_ids.select { |type_id| type_id.first == type }.map(&:last).uniq.compact
             type_ids.each do |id|
-              type.constantize.where(id: id).update_all asso.counter_cache_column => where(asso.foreign_key => id).count
+              type.constantize.where(id: id).update_all asso.counter_cache_column => where(asso.foreign_key => id).count, updated_at: Time.now
             end
           end
         else
           asso_ids = ids_with_types[index]
           asso_ids.each do |id|
-            asso.klass.where(id: id).update_all asso.counter_cache_column => where(asso.foreign_key => id).count
+            asso.klass.where(id: id).update_all asso.counter_cache_column => where(asso.foreign_key => id).count, updated_at: Time.now
           end
         end
       end
