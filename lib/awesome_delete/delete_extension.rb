@@ -9,39 +9,38 @@ module AwesomeDelete
         all_associations_name = get_associations_name << self.name
       end
 
-      delete_assoicated_collection(ids, deleted_associations, all_associations_name)
+      options = {
+                deleted_associations: deleted_associations,
+                all_associations_name: all_associations_name
+              }
 
+      _delete_collection(ids, options)
+    end
+
+    def _delete_collection ids, options = {}
+      delete_assoicated_collection(ids, options)
+
+      delete_self_and_subklass(ids, options)
+    end
+
+    def delete_self_and_subklass ids, options = {}
       # STI
       if column_names.include? inheritance_column
         where(id: ids).pluck(inheritance_column).uniq.each do |type|
           subklass = type.constantize
-          subklass.delete_self_collection(ids, all_associations_name)
-          delete_assoicated_collection(ids, subklass.deleted_associations - deleted_associations, all_associations_name)
+          subklass.delete_self_collection(ids, options)
+
+          new_options = options.dup.tap { |options| options[:deleted_associations] = subklass.deleted_associations - deleted_associations }
+          delete_assoicated_collection(ids, new_options)
         end
       else
-        delete_self_collection(ids, all_associations_name)
+        delete_self_collection(ids, options)
       end
     end
 
-    def deleted_associations
-      @deleted_associations ||= reflect_on_all_associations.select do |asso|
-                                  [:destroy, :delete_all].include? asso.options.deep_symbolize_keys[:dependent]
-                                end
-    end
+    def delete_self_collection ids, options = {}
+      all_associations_name = options[:all_associations_name]
 
-    def touch_associations
-      @touch_associations ||= reflect_on_all_associations.select do |asso|
-                                asso.options.deep_symbolize_keys[:touch]
-                              end
-    end
-
-    def counter_cache_associations
-      @counter_cache_associations ||= reflect_on_all_associations.select do |asso|
-                                        asso.options.deep_symbolize_keys[:counter_cache]
-                                      end
-    end
-
-    def delete_self_collection ids, all_associations_name
       #touch
       need_handle_touch_associations = touch_associations.select do |asso|
                                          !all_associations_name.include?(asso.class_name)
@@ -60,7 +59,10 @@ module AwesomeDelete
       handle_counter_cache(need_handle_counter_cache_associations, cache_ids_with_types_of_counter_cache)
     end
 
-    def delete_assoicated_collection ids, associations, all_associations_name
+    def delete_assoicated_collection ids, options
+      associations = options[:deleted_associations]
+      all_associations_name = options[:all_associations_name]
+
       associations.each do |association|
         association_class = association.klass
 
@@ -159,6 +161,24 @@ module AwesomeDelete
           end
         end
       end
+    end
+
+    def deleted_associations
+      @deleted_associations ||= reflect_on_all_associations.select do |asso|
+                                  [:destroy, :delete_all].include? asso.options.deep_symbolize_keys[:dependent]
+                                end
+    end
+
+    def touch_associations
+      @touch_associations ||= reflect_on_all_associations.select do |asso|
+                                asso.options.deep_symbolize_keys[:touch]
+                              end
+    end
+
+    def counter_cache_associations
+      @counter_cache_associations ||= reflect_on_all_associations.select do |asso|
+                                        asso.options.deep_symbolize_keys[:counter_cache]
+                                      end
     end
   end
 end
