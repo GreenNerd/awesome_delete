@@ -1,172 +1,150 @@
 module AwesomeDelete
   module DeleteExtension
-    def delete_collection ids, all_associations_name = []
-      return true if ids.blank?
+    def delete_collection deleted_ids, all_association_names = []
+      return 0 if deleted_ids.blank?
 
-      #Need not to set value for all_associations_name
-      #Not handle counter_cache or touch association in all_associations_name
-      if all_associations_name.blank?
-        all_associations_name = get_associations_name << self.name
+      # Need not to set value for all_association_names, all_association_names will be auto filled
+      # Not handle counter_cache or touch association in all_association_names
+      if all_association_names.blank?
+        find_all_association_names(all_association_names)
+        all_association_names << self.name
       end
 
-      options = {
-                deleted_associations: deleted_associations,
-                all_associations_name: all_associations_name
-              }
+      options = { all_association_names: all_association_names }
 
-      _delete_collection(ids, options)
+      __delete_collection(deleted_ids, options)
     end
 
-    def _delete_collection ids, options = {}
-      delete_assoicated_collection(ids, options)
+    def __delete_collection deleted_ids, options
+      delete_assoicated_collection(deleted_ids, options)
 
-      delete_self_and_subklass(ids, options)
+      delete_self_collection(deleted_ids, options)
     end
 
-    def delete_self_and_subklass ids, options = {}
-      # STI
-      if column_names.include? inheritance_column
-        where(id: ids).pluck(inheritance_column).uniq.each do |type|
-          subklass = type.constantize
-          subklass.delete_self_collection(ids, options)
+    def delete_self_collection deleted_ids, options
+      # cache data that is need to handle touch and counter_cache, because which will be gone after delete_all
+      cache_ids_with_types_of_touch = get_ids_with_types(touch_associations, deleted_ids)
+      cache_ids_with_types_of_counter_cache = get_ids_with_types(counter_cache_associations, deleted_ids)
 
-          new_options = options.dup.tap { |options| options[:deleted_associations] = subklass.deleted_associations - deleted_associations }
-          delete_assoicated_collection(ids, new_options)
-        end
-      else
-        delete_self_collection(ids, options)
-      end
+      deleted_counter = where(id: deleted_ids).delete_all
+
+      handle_touch cache_ids_with_types_of_touch, options
+      handle_counter_cache cache_ids_with_types_of_counter_cache, options
+
+      deleted_counter
     end
 
-    def delete_self_collection ids, options = {}
-      all_associations_name = options[:all_associations_name]
-
-      #touch
-      need_handle_touch_associations = touch_associations.select do |asso|
-                                         !all_associations_name.include?(asso.class_name)
-                                       end
-      cache_ids_with_types_of_touch = get_ids_with_types(need_handle_touch_associations)
-
-      #counter_cache
-      need_handle_counter_cache_associations = counter_cache_associations.select do |asso|
-                                                 !all_associations_name.include?(asso.class_name)
-                                               end
-      cache_ids_with_types_of_counter_cache = get_ids_with_types(need_handle_counter_cache_associations)
-
-      execute_callbacks(ids)
-
-      handle_touch(need_handle_touch_associations, cache_ids_with_types_of_touch)
-      handle_counter_cache(need_handle_counter_cache_associations, cache_ids_with_types_of_counter_cache)
-    end
-
-    def delete_assoicated_collection ids, options
-      associations = options[:deleted_associations]
-      all_associations_name = options[:all_associations_name]
-
-      associations.each do |association|
-        association_class = association.klass
-
-        #polymorphic
-        if association.type
-          association_class.delete_collection association_class.where(association.foreign_key => ids, association.type => self.name).pluck(:id), all_associations_name
-        else
-          association_class.delete_collection association_class.where(association.foreign_key => ids).pluck(:id), all_associations_name
-        end
-      end
-    end
-
-    def get_associations_name
-      return [] if deleted_associations.blank?
-      associations_name = []
+    def delete_assoicated_collection deleted_ids, options
+      all_association_names = options[:all_association_names]
 
       deleted_associations.each do |association|
-        associations_name << association.class_name
-        associations_name += association.class_name.constantize.get_associations_name
-      end
-      associations_name
-    end
+        association_class = association.klass
 
-    def get_ids_with_types associations
-      associations.map do |asso|
-        if asso.options[:polymorphic]
-          where(id: ids).pluck(asso.foreign_type, asso.foreign_key).uniq
+        # polymorphic
+        if association.type
+          association_class.delete_collection association_class.where(association.foreign_key => deleted_ids, association.type => self.name).pluck(:id), all_association_names
         else
-          where(id: ids).pluck(asso.foreign_key).uniq
+          association_class.delete_collection association_class.where(association.foreign_key => deleted_ids).pluck(:id), all_association_names
         end
       end
     end
 
-    def execute_callbacks ids
-      #overwriting this method may be a better choice
-      collection = where(id: ids).to_a
-      befores = _destroy_callbacks.select { |callback| callback.kind == :before }
-      afters = _destroy_callbacks.select { |callback| callback.kind == :after }
-      commits = _commit_callbacks.select do |callback|
-        ifs = callback.instance_variable_get('@if')
-        ifs.empty? || ifs.include?("transaction_include_any_action?([:destroy])")
-      end
+    def find_all_association_names names
+      # Find all classes that will be deletded
+      return [] if deleted_associations.blank?
 
-      befores.each do |callback|
-        case callback.filter
-        when Symbol
-          collection.each { |item| item.send callback.filter }
-        end
-      end
-      where(id: ids).delete_all
-      afters.each do |callback|
-        case callback.filter
-        when Symbol
-          collection.each { |item| item.send callback.filter }
-        end
-      end
-      commits.each do |callback|
-        case callback.filter
-        when Symbol
-          collection.each { |item| item.send callback.filter }
-        end
+      deleted_associations.each do |association|
+        next if association.class_name.in?(names)
+
+        names << association.class_name
+        association.class_name.constantize.find_all_association_names(names)
       end
     end
 
-    def handle_touch associations, ids_with_types
-      associations.each_with_index do |asso, index|
+    def get_ids_with_types assos, deleted_ids
+      # polymorphic: { 'Post' => [1,3,4], 'Form' => [4,5,6] }
+      # not polymorphic: [1, 2 ,3]
+      # asso is BelongsToReflection
+
+      assos.map do |asso|
         if asso.options[:polymorphic]
-          types_ids = ids_with_types[index]
-          types = types_ids.map(&:first).uniq.compact
-          types.each do |type|
-            type_ids = types_ids.select { |type_id| type_id.first == type }.map(&:last).uniq.compact
-            type.constantize.where(id: type_ids).map(&:touch)
+          where(id: deleted_ids).group(asso.foreign_type)
+                                .pluck("#{asso.foreign_type}, array_agg(distinct #{asso.foreign_key})")
+                                .to_h
+        else
+          where(id: deleted_ids).pluck(asso.foreign_key).uniq
+        end
+      end
+    end
+
+    def handle_touch data, options
+      # touching one by one is to execute touch callbacks
+
+      touch_associations.each_with_index do |asso, index|
+        if asso.options[:polymorphic]
+          types_with_ids = data[index]
+          types_with_ids.each do |type, ids|
+            next if options[:all_association_names].include?(type)
+
+            type.constantize.where(id: ids).find_each(&:touch)
           end
+
         else
-          asso_ids = ids_with_types[index]
-          asso.klass.where(id: asso_ids).map(&:touch)
+          next if options[:all_association_names].include?(asso.class_name)
+
+          asso_ids = data[index]
+          asso.klass.where(id: asso_ids).find_each(&:touch)
         end
       end
     end
 
-    def handle_counter_cache associations, ids_with_types
-      associations.each_with_index do |asso, index|
+    def handle_counter_cache data, options
+      counter_cache_associations.each_with_index do |asso, index|
         if asso.options[:polymorphic]
-          types_ids = ids_with_types[index]
-          types = types_ids.map(&:first).uniq.compact
-          types.each do |type|
-            type_ids = types_ids.select { |type_id| type_id.first == type }.map(&:last).uniq.compact
-            type_ids.each do |id|
-              type.constantize.where(id: id).update_all asso.counter_cache_column => where(asso.foreign_key => id).count, updated_at: Time.now
+          types_with_ids = data[index]
+          types_with_ids.each do |type, ids|
+            next if options[:all_association_names].include?(type)
+
+            ids.each do |id|
+              count = where(asso.foreign_key => id, asso.foreign_type => type).count
+              type.constantize.where(id: id).update_all asso.counter_cache_column => count
             end
           end
         else
-          asso_ids = ids_with_types[index]
+          next if options[:all_association_names].include?(asso.class_name)
+
+          asso_ids = data[index]
           asso_ids.each do |id|
-            asso.klass.where(id: id).update_all asso.counter_cache_column => where(asso.foreign_key => id).count, updated_at: Time.now
+            count = where(asso.foreign_key => id).count
+            asso.klass.where(id: id).update_all asso.counter_cache_column => count
           end
         end
       end
     end
 
     def deleted_associations
-      @deleted_associations ||= reflect_on_all_associations.select do |asso|
-                                  [:destroy, :delete_all].include? asso.options.deep_symbolize_keys[:dependent]
-                                end
+      return @deleted_associations if @deleted_associations
+
+      @deleted_associations = reflect_on_all_associations.select do |asso|
+        [:destroy, :delete_all, :delete].include? asso.options.deep_symbolize_keys[:dependent]
+      end
+
+      # STI: dependent destroy in subclass
+      # TODO: in development mode, subclasses are not showing up due to lazy loading.
+      if column_names.include? inheritance_column
+        pluck("distinct #{inheritance_column}").each do |type|
+          next if type.blank?
+
+          subklass = type.constantize
+          sub_deleted_associations = subklass.reflect_on_all_associations.select do |asso|
+            [:destroy, :delete_all, :delete].include? asso.options.deep_symbolize_keys[:dependent]
+          end
+
+          @deleted_associations |= sub_deleted_associations
+        end
+      end
+
+      @deleted_associations
     end
 
     def touch_associations

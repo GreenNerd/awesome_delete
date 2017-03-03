@@ -31,8 +31,6 @@ require 'action_controller'
 require 'rspec/rails'
 require 'database_cleaner'
 RSpec.configure do |config|
-  config.fixture_path = "#{plugin_test_dir}/fixtures"
-  config.use_transactional_fixtures = true
   config.after(:suite) do
     unless /sqlite/ === ENV['DB']
       Combustion::Database.drop_database(ActiveRecord::Base.configurations[ENV['DB']])

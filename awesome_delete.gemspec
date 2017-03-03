@@ -20,6 +20,6 @@ Gem::Specification.new do |gem|
   gem.add_runtime_dependency 'activerecord', '>= 4.0.0', '< 5'
 
   gem.add_development_dependency 'rspec-rails', '~> 3.0'
-  gem.add_development_dependency 'combustion', '>= 0.5.2'
+  gem.add_development_dependency 'combustion', '>= 0.5.2', '< 0.5.5'
   gem.add_development_dependency 'database_cleaner'
 end

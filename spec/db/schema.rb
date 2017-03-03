@@ -1,54 +1,45 @@
 ActiveRecord::Schema.define(:version => 0) do
   create_table :projects, :force => true do |t|
     t.string :title
-    t.integer :forms_count
+    t.integer :tasks_count
+    t.integer :comments_count
+    t.datetime :created_at
+    t.datetime :updated_at
+  end
+
+  create_table :tasks, :force => true do |t|
+    t.string :title
+    t.integer :project_id
+    t.datetime :created_at
+    t.datetime :updated_at
+  end
+
+  create_table :items, :force => true do |t|
+    t.string :name
+    t.integer :task_id
+    t.string :type
+    t.datetime :created_at
+    t.datetime :updatedat
+  end
+
+  create_table :options, :force => true do |t|
+    t.string :name
+    t.integer :item_id
+    t.datetime :created_at
+    t.datetime :updated_at
+  end
+
+  create_table :comments, :force => true do |t|
+    t.string :content
+    t.integer :commentable_id
+    t.string :commentable_type
     t.datetime :created_at
     t.datetime :updated_at
   end
 
   create_table :users, :force => true do |t|
     t.string :name
-    t.integer :forms_count
-    t.datetime :created_at
-    t.datetime :updated_at
-  end
-
-  create_table :forms, :force => true do |t|
-    t.string :title
-    t.integer :user_id
-    t.integer :formable_id
-    t.string :formable_type
-    t.datetime :created_at
-    t.datetime :updated_at
-  end
-
-  create_table :responses, :force => true do |t|
-    t.integer :responseable_id
-    t.string :responseable_type
-    t.integer :entries_count
-    t.datetime :created_at
-    t.datetime :updated_at
-  end
-
-  create_table :fields, :force => true do |t|
-    t.string :title
-    t.integer :form_id
-    t.string :type
-    t.integer :options_count, default: 0
-    t.datetime :created_at
-    t.datetime :updated_at
-  end
-
-  create_table :options, :force => true do |t|
-    t.string :title
-    t.integer :field_id
-    t.datetime :created_at
-    t.datetime :updated_at
-  end
-
-  create_table :entries, :force => true do |t|
-    t.string :title
-    t.integer :response_id
+    t.integer :project_id
     t.datetime :created_at
     t.datetime :updated_at
   end
